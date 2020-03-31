@@ -1,0 +1,86 @@
+La meta
+En este juego, estás al mando de barcos piratas y tu objetivo es evitar quedarte sin ron. Si todo el ron se seca en un barco determinado, 
+tu tripulación se volverá loca y perderás el barco. Barriles de ron se colocan al azar en todo el mapa.
+ Debes controlar los movimientos de tu nave para recoger los barriles de ron antes que tu oponente.
+ 	Reglas
+El juego se juega en una cuadrícula hexagonal. 23 células de ancho y 21alto.
+
+Ambos jugadores tienen un barco (y hasta 3 en las ligas posteriores). Cada barco es3 células largas y 1Celda amplia.
+
+En la cuadrícula encontrarás barriles de ron (BARRIL) Los barriles contienen entre10 y 20unidades de ron. Cada barco puede transportar un máximo de100unidades de ron (se perderá el excedente).
+
+Cada turno, los jugadores pueden decidir mover su nave hacia la celda de su elección usando elMOVERSEmando. 
+Las naves pueden ganar velocidad, reducir la velocidad, girar a la izquierda (babor) o a la derecha (estribor). 
+losMOVERSEaction utiliza un algoritmo muy simplificado para llegar al destino.
+Nota: puede elegir usar elESPEREcomando, en cuyo caso su bote retendrá la dirección y la velocidad que tuvo el último giro. 
+Utilizando elMÁS LENTOEl comando ralentizará tu nave.
+
+Turnos de juego:
+
+Un turno de juego se calcula de la siguiente manera:
+La cantidad de ron que transporta cada barco se reduce en 1 unidad.
+Se aplican los comandos de los jugadores.
+Las naves avanzan en la misma cantidad de celdas que su velocidad.
+Las naves giran.
+Eliminación de naves sin más ron.
+Si en algún momento durante su movimiento un barco comparte una celda con un barril de ron, el barco recoge ese ron.
+
+La cuadrícula: la
+
+coordenada (0,0) está en la esquina superior izquierda de la cuadrícula. La cuadrícula del juego está compuesta por celdas hexagonales,
+ pero, para esta liga, no tienes que preocuparte demasiado por eso.
+ Simplemente use elMOVERSEcomando para moverse: eso es tan fácil como moverse en una cuadrícula normal.
+ Se proporcionará más información sobre las tuercas y tornillos de una cuadrícula hexagonal en las próximas ligas.
+
+Los barcos:
+
+la posición de un barco en la cuadrícula está representada por las coordenadas de su centro y su dirección. La dirección es un número entre0 0 y 5 5.
+ 
+
+Dirección de un barco
+Un barco puede tener una de las 6 direcciones que se muestran arriba.
+ 
+Condiciones de victoria
+Tu oponente se queda sin ron.
+Después de 200 turnos, tienes más ron en total que tu oponente.
+ 	Reglas de expertos
+Colisiones
+
+No necesita preocuparse por las colisiones en esta liga. El mecanismo de colisión se explicará en las próximas ligas.
+
+Código fuente:
+
+El código fuente del juego está disponible en nuestro Github en esta dirección: https://github.com/CodinGame/coders-of-the-caribbean/
+ 	Entrada del juego
+Entrada para un turno de juego
+Línea 1: myShipCount , un número entero para la cantidad de barcos que controlas.
+Línea 2: entityCount , un número entero para el número de entidades en la cuadrícula.
+Las siguientes líneas entityCount : un entero entityId , una cadena entityType , dos enteros x e y para las coordenadas de la entidad, luego 4 enteros arg1 , arg2 , arg3 y arg4 .
+
+Si entityType es igual aEMBARCACION, entonces los enteros representan:
+arg1 : la orientación de rotación del barco (entre0 0 y 5 5)
+arg2 : la velocidad del barco (entre0 0 y 2)
+arg3 : el stock de unidades de ron del barco
+arg4 :1 si usted controla el barco, 0 0 de otra manera
+Si entityType es igual aBARRIL, entonces los enteros representan:
+arg1 : la cantidad de ron en este barril
+Salida para un turno de juego
+Para cada uno de tus barcos, uno de los siguientes comandos:
+MOVERSE x y : se mueve automáticamente hacia la coordenada especificada.
+MÁS LENTO: acelerar el barco hacia abajo.
+ESPERE: no realizar ninguna acción.
+Restricciones
+myShipCount =1
+10≤ rumBarrelCount ≤26
+0 0≤ x ≤22
+0 0≤ y ≤20
+0 0≤ shipSpeed ≤2
+Tiempo de
+respuesta para el primer turno ≤ 1000ms Tiempo de respuesta para un turno ≤ 50ms
+
+¿Qué me depara en las ligas superiores?
+
+Las reglas adicionales disponibles en las ligas superiores son:
+Dispara bolas de cañón a tu oponente y coloca minas en el mapa.
+Controla hasta 3 barcos a la vez.
+Dirige las naves manualmente para un control más preciso. Los barcos pueden ir el doble de rápido.
