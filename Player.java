@@ -58,11 +58,14 @@ class Player {
         Punto coordSeleccion = null ,coordDisparo=null;
         double minAdversario;
         ArrayList <Barco> listBarco  = null;
+        ArrayList<Barco> listEnemigo = null ;
         ArrayList <Barril> listBarril = null;
         ArrayList <Mina> listMina = null ;
         ArrayList <Entidad> listEsquina = new ArrayList();
-        Punto posDisparar;
-        int x4 ,y4 ;
+        Punto posDisparar ,ms;
+        int x4 ,y4 ,x21,y21,x28,y28,posX_Actual,posY_Actual;
+        
+        boolean band ,avanze,bandEnemigo;
         
         listEsquina.add( new Entidad(1,"esq1",0,0));
         listEsquina.add(new Entidad(2,"esq2",0,20));
@@ -78,6 +81,7 @@ class Player {
             listBarco = new ArrayList();
             listBarril = new ArrayList();
             listMina = new ArrayList();
+            listEnemigo = new ArrayList();
             
             for (int i = 0; i < entityCount; i++) {
                 int entityId = in.nextInt();
@@ -89,154 +93,190 @@ class Player {
                 int arg3 = in.nextInt();
                 int arg4 = in.nextInt();
 
-               
                            /*
-                 
                             Agregar Entidades a las Listas 
-                 
                            */ 
-                           if(entityType.equals("SHIP")){
-                   
-                    
-                            listBarco.add(new Barco(entityId,entityType,x,y,arg1,arg2,arg3,arg4));
-                    
-                            }
-                
-
-                           if(entityType.equals("BARREL")){
-                        
-                            listBarril.add(new Barril(entityId,entityType,x,y,arg1));
-                     
-                           }
-                           
-                           if(entityType.equals("MINE")){
-                        
-                        
-                            listMina.add(new Mina(entityId,entityType,x,y));
-                           }
-                              
+                            agregarEntidades(entityId,entityType,x,y,arg1,arg2,arg3,arg4,listBarco,listEnemigo,listBarril,listMina);
+                                       
                    }
-               //System.err.println(""+entityId+" "+entityType+" "+x+" "+y+" "+arg1+" "+arg2+" "+arg3+" "+arg4);
+                           //System.err.println(""+entityId+" "+entityType+" "+x+" "+y+" "+arg1+" "+arg2+" "+arg3+" "+arg4);
                 
             
             
             //System.err.print(listBarco.size());
             
+            
             for (int i = 0; i < myShipCount; i++) {
 
                  // Write an action using System.out.println()
                  // To debug: System.err.println("Debug messages...");
-                // System.out.println("MOVE 10 9");// tengo esta linea pero no me visualiza en codingame
-                
-                /*Recuperar barco */
-               barco = listBarco.get(0);
-               barcoAdversario = listBarco.get(1);
+                           
+                            
+                          barco = listBarco.get(i);
+                          // buscar el barco mas cercano enemigo 
+                          barcoAdversario = barcoMasCercano(barco ,listEnemigo);
+                          //listEnemigo.get(0);
+                                                    
+                           /* la distancia minima de el barco adversario a al barril mas cercano */
+                           Par infoAdv =  distancia_Barril(barcoAdversario,listBarril);
                
-               /* la distancia minima de el barco adversario a al barril mas cercano */
-               //minAdversario = distancia_Barril(barcoAdversario,listBarril);
-               //Punto coordBarrel = posicionBarril_Cercano(barcoAdversario,listBarril);
-               Par infoAdv =  distancia_Barril(barcoAdversario,listBarril);
+                           /*La heuristica corresponde con encontrar la coordenada optima para efectuar el movimiento del barco 
+                           Se evalua la distancia al barril mas cercano considerando la distancia del barco adversario al dicho barril */
+                           coordSeleccion = heuristica(barco,listBarril,infoAdv);
+                           // posicionActual del Barco 
+                           posX_Actual = barco.getCoordenada().getPunto_X();
+                           posY_Actual = barco.getCoordenada().getPunto_Y();
+                           // calculo  para el disparo 
+                           int math_Disparo =(int) Math.round(1+(barco.distancia(barcoAdversario)/3));                                   
+                           x28 = barcoAdversario.getCoordenada().getPunto_X()+(vecinos[barcoAdversario.coordenaPar_Y()][barcoAdversario.getOrientacion()][0]*math_Disparo);
+                           y28= barcoAdversario.getCoordenada().getPunto_Y()+(vecinos[barcoAdversario.coordenaPar_Y()][barcoAdversario.getOrientacion()][1]*math_Disparo);  
+                           
+                            System.err.println("velocidad "+barco.getVelocidad());
+                            System.err.println("posicion Actual "+barco.posicionActual());
                
-               /*La heuristica corresponde con encontrar la coordenada optima para efectuar el movimiento del barco 
-               Se evalua la distancia al barril mas cercano considerando la distancia del barco adversario al dicho barril */
-               coordSeleccion = heuristica(barco,listBarril,infoAdv);
-               
-               System.err.println("velocidad "+barco.getVelocidad());
-               System.err.println("posicion Actual "+barco.posicionActual());
-               
-               if(coordSeleccion !=null){
-                barco.setDisparo(0);   
-                int x2 = coordSeleccion.getPunto_X();
-                int y2 = coordSeleccion.getPunto_Y();   
-                boolean band = minasCercana(vecinos,x2 ,y2,barco.coordenaPar_Y() ,barco.getOrientacion(),listMina);
-                int x10 = barco.getCoordenada().getPunto_X();
-                int y10 = barco.getCoordenada().getPunto_Y();
-                
-                                          if(x10-2==0 || x10+2==22 || y10-2==0 || y10+2==20){
+          if(coordSeleccion !=null){
+                              
+                                    //en este if lo que hago es obtener la coordenada del barril mas cercano 
+                                    barco.setDisparo(0);   
+                                    
+                                    int x2 = coordSeleccion.getPunto_X();
+                                    int y2 = coordSeleccion.getPunto_Y();   
+                                    // identificar si tengo minas Cercana 
+                                    band = minasCercana(vecinos,posX_Actual ,posY_Actual,barco.coordenaPar_Y() ,barco.getOrientacion(),listMina);
+                                    // verificar si tengo cerca barco Enemigo 
+                                    bandEnemigo = verificarBarcoEnemigo(vecinos,barco,barcoAdversario);
+                                          if(esquinaCercana(posX_Actual ,posY_Actual)){
                                               
-                                            cambiarOrientacion(barco , x10 , y10);
+                                            cambiarOrientacion(barco , posX_Actual, posY_Actual);
                                                                                   
                                           System.out.println("MOVE "+x2+" "+y2); // Any valid action, such as "WAIT" or "MOVE x y"
-                           
-                                      }
-                                 else{ 
+                            
+                                            }
+                                          else{ 
                 
-                                               if(band){
-                    
-                                                       barco.cambiarOrientacion(1);
-                                                       System.out.println("MOVE "+x2+" "+y2); // Any valid action, such as "WAIT" or "MOVE x y"
-                    
-                                                       }
-                                              else{
-                        
-                                                        boolean bandEnemigo = verificarBarcoEnemigo(vecinos,x2,y2,barco.coordenaPar_Y(),barco.getOrientacion(),barcoAdversario.getCoordenada());
-                                                        if(bandEnemigo){
-                                                       // System.out.println("WAIT");
-                                                      // int x9 = barcoAdversario.getCoordenada().getPunto_X();
-                                                      //  int y9 = barcoAdversario.getCoordenada().getPunto_Y();
-                                                      posDisparar = posDisparo(barco ,barcoAdversario , listBarril);
-                                                      // que hago cuando esty sin barril
-                                                      x4 = posDisparar.getPunto_X();
-                                                      y4 = posDisparar.getPunto_Y();
-                                                      
-                                                      
-                                                      
+                                                        if(band || bandEnemigo){
+                                                            
+                                                            
+                                                               // puedo disparar 
+                                                               if(bandEnemigo ){
+                                                                   
+                                                                     posDisparar = posDisparo(barco ,barcoAdversario , listBarril);
+                                                                       // que hago cuando esty sin barril
+                                                                     x4 = posDisparar.getPunto_X();
+                                                                     y4 = posDisparar.getPunto_Y();
+                                            
+                                                                        
+                                                                       System.out.println("MOVE "+x2+" "+y2);
+                                                                       System.out.println("FIRE "+x4+" "+y4);
+                                                                   
+                                                                   
+                                                                }
+                                                                else
+                                                                {
+                                                                    //cambiar de orientacion 
+                                                                barco.cambiarOrientacion(1);
+                                                                System.out.println("MOVE "+x2+" "+y2); // Any valid action, such as "WAIT" or "MOVE x y"
                                                        
-                                                           System.out.println("FIRE "+x4+" "+y4);
+                                                       
+                                                                }
+                                                       
+                                                       
+                    
+                                                           }
+                                                      else{
+                        
+                                                      //  boolean bandEnemigo = verificarBarcoEnemigo(vecinos,posX_Actual,posY_Actual,barco.coordenaPar_Y(),barco.getOrientacion(),barcoAdversario.getCoordenada());
+                                                        //if(bandEnemigo){
+                                                      
+                                                      //   posDisparar = posDisparo(barco ,barcoAdversario , listBarril);
+                                                         // que hago cuando esty sin barril
+                                                      //   x4 = posDisparar.getPunto_X();
+                                                      //   y4 = posDisparar.getPunto_Y();
+                                            
+                                                     //    System.out.println("FIRE "+x4+" "+y4);
                                 
-                                                         }
-                                                        else{
+                                                     //    }
+                                                    //    else{
                                    
                                                        System.out.println("MOVE "+x2+" "+y2); // Any valid action, such as "WAIT" or "MOVE x y"
-                                                       }    
+                                                   //    }    
                         
-                                                   }
+                                                      }
                  
-                
                                    }
                }
                else{
                    
-                   
+                  //  x28 = barcoAdversario.getCoordenada().getPunto_X()+(vecinos[barcoAdversario.coordenaPar_Y()][barcoAdversario.getOrientacion()][0]*math_Disparo);
+                 //   y28= barcoAdversario.getCoordenada().getPunto_Y()+(vecinos[barcoAdversario.coordenaPar_Y()][barcoAdversario.getOrientacion()][1]*math_Disparo);
                         // verifico si estoy en un borde 
-                                                          int x7 = barco.getCoordenada().getPunto_X();
-                                                          int y7 = barco.getCoordenada().getPunto_Y();
-                                                           if(x7-2==0 || x7+2==22 || y7-2==0 || y7+2==20){
-                                              
-                                                                 cambiarOrientacion(barco , x7 , y7 );
+                        
+                      ms = coordenadaOptima(listMina);
+                      x21 = ms.getPunto_X();
+                      y21 = ms.getPunto_Y();        
+       
+                                                          // verifico los valores de x,y que podrian ser en caso de que esten en el borde 
+                                                          
+                                                           if(esquinaCercana(posX_Actual,posY_Actual)){
+                                                                 // cambiar la orientacion del barco 
+                                                                 cambiarOrientacion(barco , posX_Actual , posY_Actual );
+                                                                 // barril mas Cercano si un caso todavia hay barriles disponibles 
                                                                  Punto m = barrilMasCercano(barco,listBarril);
                                                                  
                                                                  if(listBarril.size()!=0){
-                                                                 int x8 = m.getPunto_X();//???
-                                                                 int y8 = m.getPunto_Y();
-                                                                 
-                                                                 System.out.println("MOVE "+x8+" "+y8); // Any valid action, such as "WAIT" or "MOVE x y"
+                                                                     // ir hacia la posicion del Barril mas cercano      
+                                                                     int x8 = m.getPunto_X();//???
+                                                                     int y8 = m.getPunto_Y();
+                                                                    // System.out.println("FIRE "+x28+" "+y28);
+                                                                     System.out.println("MOVE "+x8+" "+y8); // Any valid action, such as "WAIT" or "MOVE x y"
+                                                                     System.out.println("FIRE "+x28+" "+y28);
                                                                  
                                                                  }
                                                                  else{
-                                                                     //moverme a la esquina mas cercana 
-                                                                     // System.out.println("WAIT");
-                                                                    // Punto coordEsq = esquinaMasCercana(barco,listEsquina);
-                                                                     int x6 = barcoAdversario.getCoordenada().getPunto_X();
-                                                                     int y6 = barcoAdversario.getCoordenada().getPunto_Y();
-                                                                     if(barco.distancia(barcoAdversario)<10){
-                                                                         
-                                                                     System.out.println("FIRE "+x6+" "+y6);
+                                                                      
+                                                                      // si un caso ya no hay barriles 
                                                                      
-                                                                     }
-                                                                     else{
-                                                                         
-                                                                         System.out.println("WAIT");
-                                                                         }
+                                                                          avanze = analizarRonDisponible(listBarco,listEnemigo);
+                                                                                if(avanze  && listEnemigo.size()>1){
+                                                                                                     
+                                                                                           // desplazarme a distancia lejanas del barco enemigo
+                                                                                          // moverme de forma aleatoria 
+                                                                                          ms = coordenadaOptima(listMina);
+                                                                                          x21 = ms.getPunto_X();
+                                                                                          y21 = ms.getPunto_Y();
+                                                                                          
+                                                                                           band = minasCercana(vecinos,posX_Actual,posY_Actual,barco.coordenaPar_Y() ,barco.getOrientacion(),listMina);
+                                                                                          
+                                                                                          if(band){
+                                                                                              
+                                                                                              barco.cambiarOrientacion(1);
+                                                                                              }
+                                                                                         // System.out.println("FIRE "+x28+" "+y28);
+                                                                                          System.out.println("MOVE "+x21+" "+y21);
+                                                                                          System.out.println("FIRE "+x28+" "+y28);
+                                                                                          
+                                                                                          }
+                                                                                          else{
+                                                                                                         
+                                                                                          // tengo menos Ron que el Enemigo conviene disparar 
+                                                                                          
+                                                                                         //x28 = barcoAdversario.getCoordenada().getPunto_X()+(vecinos[barcoAdversario.coordenaPar_Y()][barcoAdversario.getOrientacion()][0]*math_Disparo);
+                                                                                         //y28= barcoAdversario.getCoordenada().getPunto_Y()+(vecinos[barcoAdversario.coordenaPar_Y()][barcoAdversario.getOrientacion()][1]*math_Disparo);
+                                                                                         System.out.println("MOVE "+x21+" "+y21);
+                                                                                         System.out.println("FIRE "+x28+" "+y28);
+                                                                                                         
+                                                                                                         
+                                                                                         }
                                                                      
+                                                                    
                                                                      }
                                                            }
                                                            else{
-                                                               
-                                                                if(barco.distancia(barcoAdversario)<10 ){
+                                                               //m si no es una esquina en el proximo turno 
+                                                                             if(barco.distancia(barcoAdversario)<10 ){
                        
-                                                                 // consulto si es mi primer Disparo 
-                                                                                          if(barco.getNumDisparo()==0 && listBarril.size()!=0){
+                                                                                 // consulto si es mi primer Disparo 
+                                                                                         if(barco.getNumDisparo()==0 && listBarril.size()!=0){
                                                                                               
                                                                                               
                                                                                           //Punto c = coordenadaDisparo(barcoAdversario,listBarril);
@@ -247,48 +287,118 @@ class Player {
                                                                                          // x4 = x4/2;
                                                                                          // y4 = y4/2;
                                                                                           barco.setDisparo(1);
+                                                                                         // System.out.println("MOVE "+x21+" "+y21);
                                                                                           System.out.println("FIRE "+x4+" "+y4);
                        
                                                                                           }
                                                                                          else{
                            
-                                                                                          barco.setDisparo(0);
-                                                                                          Punto n = barrilMasCercano(barco,listBarril);
+                                                                                             barco.setDisparo(0);
+                                                                                             Punto n = barrilMasCercano(barco,listBarril);
                                                                                           
-                                                                                          if(listBarril.size()!=0){
-                                                                                          int x12 = n.getPunto_X();
-                                                                                          int y12 = n.getPunto_Y();
+                                                                                                  if(listBarril.size()!=0){
+                                                                                                     int x12 = n.getPunto_X();
+                                                                                                     int y12 = n.getPunto_Y();
                                                                  
-                                                                                          System.out.println("MOVE "+x12+" "+y12); // Any valid action, such as "WAIT" or "MOVE x y"
-                                                                                          }
-                                                                                          else{
+                                                                                                     System.out.println("MOVE "+x12+" "+y12); // Any valid action, such as "WAIT" or "MOVE x y"
+                                                                                                   }
+                                                                                                  else{
                                                                                                  //System.out.println("WAIT");
                                                                                                  
-                                                                                                 //Punto coordEs = esquinaMasCercana(barco,listEsquina);
-                                                                                                 if(barco.distancia(barcoAdversario)<10){
-                                                                                                 int x15 = barcoAdversario.getCoordenada().getPunto_X();
-                                                                                                 int y15= barcoAdversario.getCoordenada().getPunto_Y();
+                                                                                                     //Punto coordEs = esquinaMasCercana(barco,listEsquina);
+                                                                                                    // if((barco.distancia(barcoAdversario)<10) ){
+                                                                                                     //int x15 = barcoAdversario.getCoordenada().getPunto_X();
+                                                                                                     //int y15= barcoAdversario.getCoordenada().getPunto_Y();
                                                                       
-                                                                                                 System.out.println("FIRE "+x15+" "+y15);
+                                                                                                     //System.out.println("FIRE "+x15+" "+y15);
                                                                                                  
-                                                                                                 }
-                                                                                                 else{
+                                                                                                    //  }
+                                                                                                    //  else{
+                                                                                                               avanze = analizarRonDisponible(listBarco,listEnemigo);
+                                                                                                               if(avanze && listEnemigo.size()>1 ){
                                                                                                      
-                                                                                                     System.out.println("WAIT");
-                                                                                                     }
+                                                                                                                         // desplazarme a distancia lejanas del barco enemigo
+                                                                                                                        // moverme de forma aleatoria 
+                                                                                                                       ms = coordenadaOptima(listMina);
+                                                                                                                       x21 = ms.getPunto_X();
+                                                                                                                       y21 = ms.getPunto_Y();
+                                                                                                       
+                                                                                                                       band = minasCercana(vecinos,posX_Actual ,posY_Actual,barco.coordenaPar_Y() ,barco.getOrientacion(),listMina);
+                                                                                          
+                                                                                                                       if(band){
+                                                                                              
+                                                                                                                        barco.cambiarOrientacion(1);
+                                                                                                                        }
+                                                                                                                       //System.out.println("FIRE "+x28+" "+y28);
+                                                                                                                       System.out.println("MOVE "+x21+" "+y21);
+                                                                                                                       System.out.println("FIRE "+x28+" "+y28);
+                                                                                                                       
+                                                                                                                    }
+                                                                                                                else{
+                                                                                                         
+                                                                                                                      // tengo menos Ron que el Enemigo conviene disparar 
+                                                                                          
+                                                                                                                      x28 = barcoAdversario.getCoordenada().getPunto_X()+vecinos[barcoAdversario.coordenaPar_Y()][barcoAdversario.getOrientacion()][0]*math_Disparo;
+                                                                                                                      y28= barcoAdversario.getCoordenada().getPunto_Y()+vecinos[barcoAdversario.coordenaPar_Y()][barcoAdversario.getOrientacion()][1]*math_Disparo;
+                                                                      
+                                                                                                                     // System.out.println("FIRE "+x28+" "+y28);
+                                                                                                                      System.out.println("MOVE "+x21+" "+y21);
+                                                                                                                      System.out.println("FIRE "+x28+" "+y28);
+                                                                                                         
+                                                                                                         
+                                                                                                                }
                                                                                                
-                                                                                                 
+                                                                                        
                                                                                               }
                            
                            
                                                                                            }
-                                                                 }
-                                                                 else{
-                                                                     barco.setDisparo(0);
-                                                                            
-                                                                      System.out.println("WAIT");
+                                                                             }
+                                                                             else{
+                                                                                  barco.setDisparo(0);
+                                                                                  // Analizar si me conviene disparar o moverme a posicion lejana del Enemigo
+                                                                                  avanze = analizarRonDisponible(listBarco,listEnemigo);
+                                                                                  // tengo que evaluar si tengo mas ron y si tengo un barco Enemigo 
+                                                                                  if(avanze  && listEnemigo.size()>1){
+                                                                                      
+                                                                                      // conviene en desplazarme a posicion contraria al enemigo 
+                                                                                      
+                                                                                       // System.out.println("WAIT");
+                                                                                  
+                                                                                      // desplazarme a distancia lejanas del barco enemigo
+                                                                                      // moverme de forma aleatoria 
+                                                                                       ms = coordenadaOptima(listMina);
+                                                                                       x21 = ms.getPunto_X();
+                                                                                       y21 = ms.getPunto_Y();
+                                                                                       
+                                                                                        band = minasCercana(vecinos,posX_Actual ,posY_Actual,barco.coordenaPar_Y() ,barco.getOrientacion(),listMina);
+                                                                                          
+                                                                                         if(band){
+                                                                                              
+                                                                                              barco.cambiarOrientacion(1);
+                                                                                          }
+                                                                              
+                                                                                       System.out.println("MOVE "+x21+" "+y21);
+                                                                                       System.out.println("FIRE "+x28+" "+y28);
+                                                                                      
+                                                                                      }
+                                                                                      else{
+                                                                                          
+                                                                                          // tengo menos Ron que el Enemigo conviene disparar 
+                                                                                                                             
+                                                                                              x28 = barcoAdversario.getCoordenada().getPunto_X()+vecinos[barcoAdversario.coordenaPar_Y()][barcoAdversario.getOrientacion()][0]*math_Disparo;
+                                                                                              y28= barcoAdversario.getCoordenada().getPunto_Y()+vecinos[barcoAdversario.coordenaPar_Y()][barcoAdversario.getOrientacion()][1]*math_Disparo;
+                                                                      
+                                                                                            System.out.println("MOVE "+x21+" "+y21);
+                                                                                           System.out.println("FIRE "+x28+" "+y28);
+                                                                                          
+                                                                                          
+                                                                                          }
+                                                                                  
+                                                                               
+                                                                                  
                                                                                             
-                                                                    }
+                                                                             }
                                                                
                                                                
                                                                
@@ -296,19 +406,156 @@ class Player {
                                                                }
                     
                        
-                                             }
+                               }
                                          
              }
         }
     }
+    
+    /*
+    
+    verificar si esty cercano a uno esquina 
+    
+    */
+    public static boolean esquinaCercana(int x ,int y){
+        
+       return  (x-2==0 || x+2==22 || y-2==0 || y+2==20 || x==0 || x==22 || y==0 || y==20);
+        
+        }
+    
+    /*
+    Analizar si me conviene atacar a los barcos enemigos 
+    Se analiza la cantidad de Ron disponible y si es mayor a la cantidad de Ron disponible del Barco Enemigo
+    */
+    public static boolean analizarRonDisponible(ArrayList<Barco> listBarco,ArrayList<Barco> listEnemigo){
+        
+        
+        int sumTotalRon_myShip ,sumTotalRon_Enemigo;
+        
+        sumTotalRon_myShip = sumarRon(listBarco);
+        sumTotalRon_Enemigo = sumarRon(listEnemigo);
+        
+        
+        // verfico si la cantidad de Ron disponible en mi Barco es mayor a los disponible por el Enemigo     
+        return (sumTotalRon_myShip>sumTotalRon_Enemigo);
+    
+        
+        }
+        // sumar Ron total de los Barcos Disponibles 
+        private static int  sumarRon(ArrayList<Barco> list){
+            
+            Barco m =null;
+            int sumTotal =0;
+            
+            for(int i=0;i<list.size();i++){
+                
+                m = list.get(i);
+                sumTotal = sumTotal+m.getStock_ron();
+                
+                }
+            
+            return sumTotal ;
+            
+            }
+    
+      
+      /*
+      
+      Buscar espacio vacios que esten lejos del enemigo evitando las minas 
+      
+      */
+      public static Punto coordenadaOptima(ArrayList<Mina> listMina)
+      {
+          
+              // desplazarme a distancia lejanas del barco enemigo
+             // moverme de forma aleatoria
+             boolean band =true ,salir=true;
+             Punto pos =null;
+             int x =0 ,y=0 ;
+         
+              while(salir){ 
+             
+                           x = (int)Math.random()*22;
+                           y = (int)Math.random()*20;
+                          int j=0;
+                          band = true ;
+                                   while(j<listMina.size()&&(band)){
+             
+                                            Mina m = listMina.get(j);
+                                           if(m.getCoordenada().igualCoordenada(x,y)){
+                 
+                                           band = false;
+                                           }
+                 
+                                           j++;
+                                   } 
+             
+             //si band es false significa que esa posicion generado aleatorriamente corresponde a una poscicion de mina
+             if(band){
+                 
+                 salir = false;
+                 }
+          
+         }
+         
+         pos = new Punto(x,y);
+         return pos ;
+         
+         
+     }
+      
+      
+      /*
+      
+      Agregar Entidades a la lista 
+      
+      
+      
+      */
+      
       
 
-
-public static void cambiarOrientacion(Barco barco ,int x2 ,int y2 ){
-    
+public static void agregarEntidades(int entityId,String entityType,int x,int y,int arg1,int arg2,int arg3,int arg4,ArrayList <Barco> listBarco,ArrayList<Barco>listEnemigo,ArrayList<Barril> listBarril,ArrayList<Mina> listMina){
     
      
     
+    
+     /*
+     Agregar Entidades a las Listas 
+    */ 
+      if(entityType.equals("SHIP")){
+                   
+                 if(arg4==1){    
+                     listBarco.add(new Barco(entityId,entityType,x,y,arg1,arg2,arg3,arg4));
+                 }
+                 else{
+                                     
+                     listEnemigo.add(new Barco(entityId,entityType,x,y,arg1,arg2,arg3,arg4));
+                     }
+                    
+            }
+                
+     if(entityType.equals("BARREL")){
+                        
+             listBarril.add(new Barril(entityId,entityType,x,y,arg1));
+                     
+    }       
+    if(entityType.equals("MINE")){
+                        
+          listMina.add(new Mina(entityId,entityType,x,y));
+     }
+                              
+  
+    
+    }
+    
+    /*
+    
+    
+    */
+public static void cambiarOrientacion(Barco barco ,int x2 ,int y2 ){
+    
+             
          if(x2-2==0){
                                        
                    if(barco.getOrientacion()==2){  barco.cambiarOrientacion(1);} 
@@ -338,20 +585,77 @@ public static void cambiarOrientacion(Barco barco ,int x2 ,int y2 ){
                  // if(barco.getOrientacion()==5) {barco.cambiarOrientacion(4);}
                                    
                }  
+               
+               //-----------------------------------------------------------------
+                   
+         if(x2==0){
+                                       
+                   if(barco.getOrientacion()==2){  barco.cambiarOrientacion(1);} 
+                   if(barco.getOrientacion()==3){  barco.cambiarOrientacion(2);}
+                   if(barco.getOrientacion()==4) {barco.cambiarOrientacion(5);}
+                  }
+                                   
+        if(x2==22){
+                                   
+                  if(barco.getOrientacion()==1){  barco.cambiarOrientacion(2);} 
+                  if(barco.getOrientacion()==0){  barco.cambiarOrientacion(5);}
+                  if(barco.getOrientacion()==5) {barco.cambiarOrientacion(4);}
+                                   
+                  }   
+                           
+       if(y2==0){
+                                       
+                 if(barco.getOrientacion()==1){  barco.cambiarOrientacion(0);} 
+                 if(barco.getOrientacion()==2){  barco.cambiarOrientacion(1);}
+                 // if(barco.getOrientacion()==4) {barco.cambiarOrientacion(5);}
+                }
+                                   
+       if(y2==20){
+                                   
+                if(barco.getOrientacion()==4){  barco.cambiarOrientacion(5);} 
+                if(barco.getOrientacion()==5){  barco.cambiarOrientacion(0);}
+                 // if(barco.getOrientacion()==5) {barco.cambiarOrientacion(4);}
+                                   
+               }  
+               
+               
+               
+               
+               
+               
     
-   
     }
-    public static boolean verificarBarcoEnemigo(int [][][]vecinos,int x ,int y ,int r ,int orientacion ,Punto coordAdversario){
+    public static boolean verificarBarcoEnemigo(int [][][]vecinos,Barco barco  ,Barco barcoEnemigo){
         
-        int posEnemigo_X = coordAdversario.getPunto_X();
-        int posEnemigo_Y=  coordAdversario.getPunto_Y();
         
-        int x1 = x+vecinos[r][orientacion][0];
+       Punto coordAdversario = barcoEnemigo.getCoordenada();    
+       int posEnemigo_X = coordAdversario.getPunto_X();
+       int posEnemigo_Y=  coordAdversario.getPunto_Y();
+       Punto pos = barco.getCoordenada();
+       int x = pos.getPunto_X();
+       int y = pos.getPunto_Y();
+       int r = barco.coordenaPar_Y();
+       int orientacion = barco.getOrientacion();
+       int velocidad = barco.getVelocidad();
+      /* int s = barcoEnemigo.coordenaPar_Y();
+       int o_Adv = barcoEnemigo.getOrientacion();
+       int aux=0 ;
+       if(o_Adv==0){aux = 3;}
+       if(o_Adv==1){aux=4;}
+       if(o_Adv==2){aux=5;}
+       int posX_A = posEnemigo_X+vecinos[s][o_Adv][0];
+       int posY_A = posEnemigo_Y+vecinos[s][o_Adv][1];
+       int posX_C = posEnemigo_X+vecinos[s][aux][0];
+       int posY_C = posEnemigo_Y+vecinos[s][aux][1];*/
+       /* int x1 = x+vecinos[r][orientacion][0];
         int y1 = y+vecinos[r][orientacion][1];
         x1 = x1+vecinos[r][orientacion][0];
-        y1 = y1+vecinos[r][orientacion][1];
+        y1 = y1+vecinos[r][orientacion][1];*/
         
-        return (x1==posEnemigo_X && y1==posEnemigo_Y);
+        x=x+vecinos[r][orientacion][0]*velocidad;
+        y=y+vecinos[r][orientacion][1]*velocidad;
+        
+        return ((x==posEnemigo_X && y==posEnemigo_Y ));
         
         }
      
@@ -359,11 +663,24 @@ public static void cambiarOrientacion(Barco barco ,int x2 ,int y2 ){
         
     
     
-         int x1 = x+vecinos[r][orientacion][0];
+      /*   int x1 = x+vecinos[r][orientacion][0];
          int y1 = y+vecinos[r][orientacion][1];
+         
+         if(y1%2==0){
+             r = 0 ;
+             }
+         else{
+             
+             r = 1 ;
+             
+             }     
+             
          x1 = x1+vecinos[r][orientacion][0];
          y1 = y1+vecinos[r][orientacion][1];
-
+        */
+        x=x+vecinos[r][orientacion][0]*2;
+        y=y+vecinos[r][orientacion][1]*2;
+        
         
         int i = 0;
         Mina m = null;
@@ -371,7 +688,7 @@ public static void cambiarOrientacion(Barco barco ,int x2 ,int y2 ){
         while((i<listMina.size() )&& (band==false)){
             
                m = listMina.get(i);
-               if(m.getCoordenada().igualCoordenada(x1,y1)){
+               if(m.getCoordenada().igualCoordenada(x,y)){
                    
                    
                    band = true ;
@@ -380,6 +697,7 @@ public static void cambiarOrientacion(Barco barco ,int x2 ,int y2 ){
             
             
             i++;
+            
             }
         
         
@@ -390,33 +708,7 @@ public static void cambiarOrientacion(Barco barco ,int x2 ,int y2 ){
         
         
         
-    public  static Punto heuristica(Barco b ,ArrayList <Barril> listBarril,double minAdversario){
-        
-        
-        Punto solucion =null;
-        double min = 1200000000;
-        double aux =0;
-        Barril r = null;
-        Barril optimo =null ;
-        Punto puntoOptimo = null;
-        
-        for(int i=0;i<listBarril.size();i++){
-            
-             r = listBarril.get(i);
-             aux = b.distancia(r);
-             if(aux<min && aux<minAdversario){
-                 
-                 min = aux ;
-                 optimo = r ;
-                 puntoOptimo = r.getCoordenada();
-                 }
-                 
-            
-            }
-         
-         return puntoOptimo;
-        
-        }
+  
         public static Punto barrilMasCercano(Barco b ,ArrayList<Barril> listBarril){
             
             
@@ -672,6 +964,37 @@ private static  Par distancia_Barril(Barco barco ,ArrayList <Barril> listBarril)
         return m;
         
     }
+    
+    /*
+    
+    Realizar la busqueda del barco enemigo mas cercano a mi posicion 
+    
+    */
+  private static Barco barcoMasCercano(Barco b ,ArrayList <Barco> listEnemigo){
+      
+      double min=2000000 ;
+      Barco barcoEnemigo ;
+      Barco band=null ;
+      
+      for(int i=0 ; i<listEnemigo.size();i++){
+          
+          barcoEnemigo = listEnemigo.get(i);
+          
+          if(b.distancia(barcoEnemigo)<min){
+              
+              min = b.distancia(barcoEnemigo);
+              band= barcoEnemigo;// el posible mas cercano a my ship 
+              
+              
+              }
+          
+          
+          }
+      
+      return band ;
+      
+      }
+     
 }
 
 
